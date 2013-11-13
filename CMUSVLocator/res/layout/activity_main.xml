@@ -70,7 +70,7 @@
                     android:text="@string/create_location_name" />
 
                 <Button
-                    android:id="@+id/create_location_b"
+                    android:id="@+id/create_location_B"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/create_and_apply_location" />
@@ -98,6 +98,26 @@
             </LinearLayout>
 
             <LinearLayout
+                android:id="@+id/suggested_location_layout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" >
+
+                <TextView
+                    android:id="@+id/suggested_location_TV"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/suggested_locatoin_default" />
+
+                <Button
+                    android:id="@+id/suggested_location_accept_B"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/accept" />
+
+            </LinearLayout>
+
+            <LinearLayout
                 android:id="@+id/control_buttons_layout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -108,8 +128,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="ToggleButton"
-                    android:textOff="Start\nscanning"
-                    android:textOn="Stop\nscanning" />
+                    android:textOff="Start\nlistening"
+                    android:textOn="Stop\nlistening" />
 
                 <ToggleButton
                     android:id="@+id/toggle_sending_TB"
@@ -117,7 +137,7 @@
                     android:layout_height="wrap_content"
                     android:text="ToggleButton"
                     android:textOff="Start\nsending"
-                    android:textOn="Stop\sending" />
+                    android:textOn="Stop\nsending" />
 
             </LinearLayout>
 
@@ -126,9 +146,20 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/packets_sent_default" />
+
+            <TextView
+                android:id="@+id/packets_pending_TV"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/packets_pending_default" />
+
+            <TextView
+                android:id="@+id/server_response_TV"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/servetr_response" />
         
     </LinearLayout>
-
 
 
 </RelativeLayout>

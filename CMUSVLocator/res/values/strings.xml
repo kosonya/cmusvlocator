@@ -13,5 +13,9 @@
     <string name="select_location_string">Select location</string>
     <string name="select_location">Existing locations</string>
     <string name="packets_sent_default">Packets sent: 0</string>
+    <string name="suggested_locatoin_default">Suggested location: None</string>
+    <string name="accept">Accept</string>
+    <string name="packets_pending_default">Packets pending: 0</string>
+    <string name="servetr_response">Here be server response</string>
 
 </resources>
