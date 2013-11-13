@@ -14,7 +14,10 @@ import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.app.Activity;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -66,6 +69,7 @@ public class MainActivity extends Activity {
 	LocationManager locman;
 	WifiManager wifimanager;
 	Context context;
+	onWiFiScanAvailable wifi_receiver = null;
 
 	
 	
@@ -121,13 +125,17 @@ public class MainActivity extends Activity {
 		locman.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, gpslistener);
 		context = getBaseContext();
         wifimanager = (WifiManager)context.getSystemService(Context.WIFI_SERVICE);
-        AsyncTask<Object, List<ScanResult>, Object> wifiscan = new WiFiScan();
-        wifiscan.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Object[])null);
+        if (wifi_receiver == null) {
+        	wifi_receiver = new onWiFiScanAvailable();
+        }
+        registerReceiver(wifi_receiver, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+        wifimanager.startScan();
 	}
 	
 	public void stopScanning() {
 		scanning_allowed = false;
 		locman.removeUpdates(gpslistener);
+		unregisterReceiver(wifi_receiver);
 	}
 	
 	public void onSomeUpdate() {
@@ -204,23 +212,15 @@ public class MainActivity extends Activity {
 	}
 	
 	
-	public class WiFiScan extends AsyncTask<Object, List<ScanResult>, Object> {
+	class onWiFiScanAvailable extends BroadcastReceiver {
 
 		@Override
-		protected Object doInBackground(Object... params) {
-			while (scanning_allowed) {
-				wifimanager.startScan();
-				List<ScanResult> res = wifimanager.getScanResults();
-				publishProgress(res);
-			}
-			return null;
-		}
-		
-		protected void onProgressUpdate(List<ScanResult>... params) {
-			wifipoints = params[0];
+		public void onReceive(Context context, Intent intent) {
+			wifipoints = wifimanager.getScanResults();
 			SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss.SSS");
 			Date dt = new Date();
 			last_wifi_update = sdf.format(dt);
+			wifimanager.startScan();
 			onSomeUpdate();
 		}
 		
