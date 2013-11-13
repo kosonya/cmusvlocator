@@ -1,5 +1,7 @@
 package edu.sv.cmu.cmusvlocator;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 
@@ -37,12 +39,12 @@ public class MainActivity extends Activity {
 	public Spinner select_location_S;
 	public ToggleButton toggle_listening_TB, toggle_sending_TB;
 	public TextView packets_sent_TV, suggested_location_TV, packets_pending_TV,
-					server_response_TV;
+					server_response_TV, wifi_TV, gps_TV;
 	
 	//Hardcoded settings
-	public Integer maximum_http_treads = 10;
+	public Integer maximum_http_treads = 1;
 //	public String server_uri = "http://curie.cmu.sv.local:8080/api/v1/process_wifi_and_gps_reading";
-	public String server_uri = "http://10.0.20.179:8080/";
+	public String server_uri = "http://10.0.20.179:8080/api/v1/process_wifi_gps_reading/";
 
 	//Semaphore for HTTP sending threads
 	public Semaphore http_semaphore;
@@ -56,7 +58,7 @@ public class MainActivity extends Activity {
 	
 	//State
 	Double Lon = null, Lat = null;
-	String location_name = "", server_response = "";
+	String location_name = "", server_response = "", last_wifi_update = "";
 	List<ScanResult> wifipoints = null;
 	
 	
@@ -80,8 +82,9 @@ public class MainActivity extends Activity {
 		toggle_sending_TB.setChecked(sending_allowed);
 		
 		http_semaphore = new Semaphore(maximum_http_treads, true);
-		
-		startScanning();
+		if (scanning_allowed) {
+			startScanning();
+		}
 	}
 
 	@Override
@@ -105,7 +108,10 @@ public class MainActivity extends Activity {
 		suggested_location_TV = (TextView)findViewById(R.id.suggested_location_TV);
 		packets_pending_TV = (TextView)findViewById(R.id.packets_pending_TV);
 		server_response_TV = (TextView)findViewById(R.id.server_response_TV);
-		//toggle_sending_TB.setOnClickListener(new onToggleSendingClicked());
+		toggle_sending_TB.setOnClickListener(new onToggleSendingClicked());
+		toggle_listening_TB.setOnClickListener(new onToggleScanningClicked());
+		gps_TV = (TextView)findViewById(R.id.gps_TV);
+		wifi_TV = (TextView)findViewById(R.id.wifi_TV);
 	}
 
 	public void startScanning() {
@@ -115,8 +121,13 @@ public class MainActivity extends Activity {
 		locman.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, gpslistener);
 		context = getBaseContext();
         wifimanager = (WifiManager)context.getSystemService(Context.WIFI_SERVICE);
-        AsyncTask<Object, Object, Object> wifiscan = new WiFiScan();
+        AsyncTask<Object, List<ScanResult>, Object> wifiscan = new WiFiScan();
         wifiscan.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, (Object[])null);
+	}
+	
+	public void stopScanning() {
+		scanning_allowed = false;
+		locman.removeUpdates(gpslistener);
 	}
 	
 	public void onSomeUpdate() {
@@ -131,6 +142,12 @@ public class MainActivity extends Activity {
 		packets_pending_TV.setText("Packets pending: " + Integer.toString(maximum_http_treads - http_semaphore.availablePermits()));
 		if (server_response != "") {
 			server_response_TV.setText("Server response:\n" + server_response);
+		}
+		if (Lon != null && Lat != null) {
+			gps_TV.setText("Longitude: " + Double.toString(Lon) + "; Latitude: " + Double.toString(Lat));
+		}
+		if (last_wifi_update != "") {
+			wifi_TV.setText("Last WiFi update at: " + last_wifi_update);
 		}
 	}
 
@@ -148,31 +165,63 @@ public class MainActivity extends Activity {
 		}
     	
     }
-	
+
+    class onToggleScanningClicked implements OnClickListener {
+
+		@Override
+		public void onClick(View v) {
+			ToggleButton b = (ToggleButton)v;
+			if (b.isChecked()) {
+				startScanning();
+			}
+			else {
+				stopScanning();
+			}
+		}
+    	
+    }
+    
+    
 	public void trySendData() {
-		long unixTime = System.currentTimeMillis();
-		String json_str = "{\"timestamp\": " +  Long.toString(unixTime);
-		if (location_name != "") {
-			json_str += ", \"location\": \"" + location_name + "\"";
+		if( (Lon != null && Lat != null) || wifipoints != null) {
+			long unixTime = System.currentTimeMillis();
+			String json_str = "{\"timestamp\": " +  Long.toString(unixTime);
+			if (location_name != "") {
+				json_str += ", \"location\": \"" + location_name + "\"";
+			}
+			if (Lon != null && Lat != null) {
+				json_str += ", \"GPSLat\": " + Double.toString(Lat);
+				json_str += ", \"GPSLon\": " + Double.toString(Lon);
+			}
+			if (wifipoints != null) {
+				for (ScanResult scanres: wifipoints) {
+					json_str += ", \"wifiBSSID" + scanres.BSSID + "\": " + Integer.toString(scanres.level);
+				}
+			}	
+			json_str += "}";
+			sendHTTPData(json_str);
 		}
-		if (Lon != null && Lat != null) {
-			json_str += ", \"GPSLat\": " + Double.toString(Lat);
-			json_str += ", \"GPSLon\": " + Double.toString(Lon);
-		}
-		json_str += "}";
-		sendHTTPData(json_str);
 	}
 	
 	
-	public class WiFiScan extends AsyncTask<Object, Object, Object> {
+	public class WiFiScan extends AsyncTask<Object, List<ScanResult>, Object> {
 
 		@Override
 		protected Object doInBackground(Object... params) {
 			while (scanning_allowed) {
 				wifimanager.startScan();
-				wifipoints = wifimanager.getScanResults();
+				List<ScanResult> res = wifimanager.getScanResults();
+				publishProgress(res);
 			}
 			return null;
+		}
+		
+		protected void onProgressUpdate(List<ScanResult>... params) {
+			wifipoints = params[0];
+			SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss.SSS");
+			Date dt = new Date();
+			last_wifi_update = sdf.format(dt);
+			onSomeUpdate();
 		}
 		
 	}
@@ -190,6 +239,7 @@ public class MainActivity extends Activity {
 	
 	public class HTTPSender extends AsyncTask<String, Object, Boolean> {
 
+		String resp = "";
 		
 		@Override
 		protected Boolean doInBackground(String... params) {
@@ -200,16 +250,12 @@ public class MainActivity extends Activity {
 			try {
 				postMethod.setEntity(new StringEntity(to_send, "UTF-8"));
 				HttpResponse response = client.execute(postMethod);
-				server_response = response.getStatusLine().getReasonPhrase();
+				resp = response.getStatusLine().getReasonPhrase();
 				return true;
 			} catch (Exception e) {
+				resp = e.toString();
 				return false;
 			} 
-		}
-		
-		protected void onProgressUpdate(String... params) {
-			server_response_TV.setText(params[0]);
-
 		}
 		
 		protected void onPostExecute(Boolean param) {
@@ -217,6 +263,8 @@ public class MainActivity extends Activity {
 			if (param) {
 				packets_sent += 1;
 			}
+			server_response = resp;
+
 			updateGUI();
 		}
 		

@@ -17,5 +17,9 @@
     <string name="accept">Accept</string>
     <string name="packets_pending_default">Packets pending: 0</string>
     <string name="servetr_response">Here be server response</string>
+    <string name="existing_locations">Existing locations</string>
+    <string name="current_location">Current location:</string>
+    <string name="here_be_gps">Here be GPS data</string>
+    <string name="here_be_wifi">Here be WiFi data</string>
 
 </resources>
