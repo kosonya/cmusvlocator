@@ -5,12 +5,12 @@
     <string name="action_settings">Settings</string>
     <string name="hello_world">Hello world!</string>
     <string name="default_server_uri">http://curie.cmu.sv.local:8080/api/v1/process_wifi_and_gps_reading</string>
-    <string name="server_uri_label">Server URI:</string>
+    <string name="server_uri_label">Server\nhost:port:</string>
     <string name="apply_string">Apply</string>
-    <string name="create_location_label">Create location:</string>
+    <string name="create_location_label">Create\nlocation:</string>
     <string name="create_location_name">Location name</string>
     <string name="create_and_apply_location">Apply</string>
-    <string name="select_location_string">Select location</string>
+    <string name="select_location_string">Select\nlocation</string>
     <string name="select_location">Existing locations</string>
     <string name="packets_sent_default">Packets sent: 0</string>
     <string name="suggested_locatoin_default">Suggested location: None</string>

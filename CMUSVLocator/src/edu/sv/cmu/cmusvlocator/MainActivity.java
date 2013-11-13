@@ -18,6 +18,7 @@
 
 package edu.sv.cmu.cmusvlocator;
 
+import java.lang.reflect.Type;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -39,6 +40,9 @@ import android.content.IntentFilter;
 import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemSelectedListener;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
@@ -52,6 +56,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.HttpResponse;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 public class MainActivity extends Activity {
 	
@@ -62,13 +67,18 @@ public class MainActivity extends Activity {
 	public Spinner select_location_S;
 	public ToggleButton toggle_listening_TB, toggle_sending_TB;
 	public TextView packets_sent_TV, suggested_location_TV, packets_pending_TV,
-					server_response_TV, wifi_TV, gps_TV;
+					server_response_TV, wifi_TV, gps_TV, current_location_TV,
+					select_location_accept_B;
 	
 	//Hardcoded settings
 	public Integer maximum_http_treads = 1;
+	public Boolean location_list_request = true;
 //	public String server_uri = "http://curie.cmu.sv.local:8080/api/v1/process_wifi_and_gps_reading";
-	public String server_uri = "http://10.0.23.67:8080/api/v1/process_wifi_gps_reading/";
-
+//	public String server_uri = "http://10.0.23.67:8080/api/v1/process_wifi_gps_reading/";
+	public String server_host_port = "10.0.20.179:8080";
+	public String send_reading_path = "/api/v1/process_wifi_gps_reading/";
+	public String send_reading_get_list = "/api/v1/process_wifi_gps_reading/list/";
+	
 	//Semaphore for HTTP sending threads
 	public Semaphore http_semaphore;
 	
@@ -81,9 +91,12 @@ public class MainActivity extends Activity {
 	
 	//State
 	Double Lon = null, Lat = null;
-	String location_name = "", server_response = "", last_wifi_update = "", suggested_location = "";
+	String location_name = "", server_response = "", last_wifi_update = "",
+			suggested_location = "", spinner_selected_location = "";
 	List<ScanResult> wifipoints = null;
 	LocationNameId received_location = null;
+	List<LocationNameId> recv_loc_list = null;
+	String spinner_array[];
 	
 	
 	LocationListener gpslistener;
@@ -102,7 +115,7 @@ public class MainActivity extends Activity {
 		setContentView(R.layout.activity_main);
 		
 		findUIElements();
-		server_uri_ET.setText(server_uri);
+		server_uri_ET.setText(server_host_port);
 		toggle_listening_TB.setChecked(scanning_allowed);
 		toggle_sending_TB.setChecked(sending_allowed);
 		
@@ -127,6 +140,7 @@ public class MainActivity extends Activity {
 		create_location_apply_B = (Button)findViewById(R.id.create_location_B);
 		suggested_location_accept_B = (Button)findViewById(R.id.suggested_location_accept_B);
 		select_location_S = (Spinner)findViewById(R.id.select_location_S);
+		select_location_S.setOnItemSelectedListener(new onSpinnerItemSelected());
 		toggle_listening_TB = (ToggleButton)findViewById(R.id.toggle_listening_TB);
 		toggle_sending_TB = (ToggleButton)findViewById(R.id.toggle_sending_TB);
 		packets_sent_TV = (TextView)findViewById(R.id.packets_sent_TV);	
@@ -135,8 +149,13 @@ public class MainActivity extends Activity {
 		server_response_TV = (TextView)findViewById(R.id.server_response_TV);
 		toggle_sending_TB.setOnClickListener(new onToggleSendingClicked());
 		toggle_listening_TB.setOnClickListener(new onToggleScanningClicked());
+		server_uri_apply_B.setOnClickListener(new onServerURIApplyClicked());
 		gps_TV = (TextView)findViewById(R.id.gps_TV);
 		wifi_TV = (TextView)findViewById(R.id.wifi_TV);
+		current_location_TV = (TextView)findViewById(R.id.current_location_TV);
+		select_location_accept_B = (Button)findViewById(R.id.select_location_accept_B);
+		suggested_location_accept_B.setOnClickListener(new onSuggestedLocationAcceptClicked());
+		select_location_accept_B.setOnClickListener(new onSelectLocationAcceptClicked());
 	}
 
 	public void startScanning() {
@@ -181,6 +200,26 @@ public class MainActivity extends Activity {
 		if (suggested_location != "") {
 			suggested_location_TV.setText("Suggested location:\n" + suggested_location);
 		}
+		if (location_name != "") {
+			current_location_TV.setText("Current location: " + location_name);
+		}
+		if (recv_loc_list != null && recv_loc_list.size() != 0) {
+			spinner_array = new String[recv_loc_list.size()];
+			int selected_pos = 0;			
+			for(int i = 0; i < recv_loc_list.size(); i++) {
+				String loc = recv_loc_list.get(i).location_name;
+				spinner_array[i] = loc;
+				if(spinner_selected_location != "" && spinner_selected_location.equals(loc)) {
+					selected_pos = i;
+				}
+			}
+			String tmp = spinner_array[selected_pos];
+			spinner_array[selected_pos] = spinner_array[0];
+			spinner_array[0] = tmp;
+			ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
+			        android.R.layout.simple_spinner_item, spinner_array);
+			select_location_S.setAdapter(adapter);
+		}
 	}
 
     class onToggleSendingClicked implements OnClickListener {
@@ -194,6 +233,7 @@ public class MainActivity extends Activity {
 			else {
 				sending_allowed = false;
 			}
+			updateGUI();
 		}
     	
     }
@@ -209,10 +249,62 @@ public class MainActivity extends Activity {
 			else {
 				stopScanning();
 			}
+			updateGUI();
 		}
     	
     }
+
+    class onServerURIApplyClicked implements OnClickListener {
+
+		@Override
+		public void onClick(View v) {
+			server_host_port = server_uri_ET.getText().toString();
+			updateGUI();
+		}
+    	
+    }
+
+    class onSuggestedLocationAcceptClicked implements OnClickListener {
+
+		@Override
+		public void onClick(View v) {
+			if (received_location != null) {
+				location_name = received_location.location_name;
+			}
+			updateGUI();
+		}
+    	
+    }    
     
+    class onSelectLocationAcceptClicked implements OnClickListener {
+
+		@Override
+		public void onClick(View v) {
+			if (spinner_selected_location != "") {
+				location_name = spinner_selected_location;
+			}
+			updateGUI();
+		}
+    	
+    } 
+    
+    class onSpinnerItemSelected implements OnItemSelectedListener {
+
+		@Override
+		public void onItemSelected(AdapterView<?> parent, View view, int pos,
+				long id) {
+			spinner_selected_location = parent.getItemAtPosition(pos).toString();
+			// TODO Auto-generated method stub
+			
+		}
+
+		@Override
+		public void onNothingSelected(AdapterView<?> arg0) {
+			// TODO Auto-generated method stub
+			
+		}
+    	
+    }
     
 	public void trySendData() {
 		if( (Lon != null && Lat != null) || wifipoints != null) {
@@ -269,6 +361,12 @@ public class MainActivity extends Activity {
 		protected Boolean doInBackground(String... params) {
 			String to_send = params[0];
 			HttpClient client = new DefaultHttpClient();
+			String server_uri = "http://" + server_host_port;
+			if (location_list_request) {
+				server_uri += send_reading_get_list;
+			} else {
+				server_uri += send_reading_path;
+			}
 			HttpPost postMethod = new HttpPost(server_uri);
 			postMethod.addHeader("content-type", "application/json");
 			try {
@@ -287,8 +385,17 @@ public class MainActivity extends Activity {
 			String str = (String)params[0];
 			server_response = str;
 			try {
-				received_location = new Gson().fromJson(str, LocationNameId.class);
-				suggested_location = received_location.location_name;
+				if (location_list_request) {
+					Type collectionType = new TypeToken<List<LocationNameId>>(){}.getType();
+					recv_loc_list = new Gson().fromJson(str, collectionType);
+					if (recv_loc_list != null && recv_loc_list.size() > 0) {
+						received_location = recv_loc_list.get(0);
+						suggested_location = received_location.location_name;
+					}
+				} else {
+					received_location = new Gson().fromJson(str, LocationNameId.class);
+					suggested_location = received_location.location_name;
+				}
 			} catch (Exception e) {
 				server_response += "\n" + e.toString();
 			}

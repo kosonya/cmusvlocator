@@ -91,10 +91,16 @@
 
                 <Spinner
                     android:id="@+id/select_location_S"
-                    android:layout_width="match_parent"
+                    android:layout_width="128dp"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1.33"
                     android:prompt="@string/existing_locations" />
 
+                <Button
+                    android:id="@+id/select_location_accept_B"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/accept" />
             </LinearLayout>
 
             <LinearLayout
