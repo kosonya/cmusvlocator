@@ -156,6 +156,7 @@ public class MainActivity extends Activity {
 		select_location_accept_B = (Button)findViewById(R.id.select_location_accept_B);
 		suggested_location_accept_B.setOnClickListener(new onSuggestedLocationAcceptClicked());
 		select_location_accept_B.setOnClickListener(new onSelectLocationAcceptClicked());
+		create_location_apply_B.setOnClickListener(new onCreateLocationClicked());
 	}
 
 	public void startScanning() {
@@ -259,6 +260,16 @@ public class MainActivity extends Activity {
 		@Override
 		public void onClick(View v) {
 			server_host_port = server_uri_ET.getText().toString();
+			updateGUI();
+		}
+    	
+    }
+    
+    class onCreateLocationClicked implements OnClickListener {
+
+		@Override
+		public void onClick(View v) {
+			location_name = create_location_ET.getText().toString();
 			updateGUI();
 		}
     	
