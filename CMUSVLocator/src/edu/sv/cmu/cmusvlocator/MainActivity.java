@@ -33,6 +33,8 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.HttpResponse;
 
+import com.google.gson.Gson;
+
 public class MainActivity extends Activity {
 	
 	// UI elements
@@ -47,7 +49,7 @@ public class MainActivity extends Activity {
 	//Hardcoded settings
 	public Integer maximum_http_treads = 1;
 //	public String server_uri = "http://curie.cmu.sv.local:8080/api/v1/process_wifi_and_gps_reading";
-	public String server_uri = "http://10.0.20.179:8080/api/v1/process_wifi_gps_reading/";
+	public String server_uri = "http://10.0.0.10:8080/api/v1/process_wifi_gps_reading/";
 
 	//Semaphore for HTTP sending threads
 	public Semaphore http_semaphore;
@@ -61,8 +63,9 @@ public class MainActivity extends Activity {
 	
 	//State
 	Double Lon = null, Lat = null;
-	String location_name = "", server_response = "", last_wifi_update = "";
+	String location_name = "", server_response = "", last_wifi_update = "", suggested_location = "";
 	List<ScanResult> wifipoints = null;
+	LocationNameId received_location = null;
 	
 	
 	LocationListener gpslistener;
@@ -156,6 +159,9 @@ public class MainActivity extends Activity {
 		}
 		if (last_wifi_update != "") {
 			wifi_TV.setText("Last WiFi update at: " + last_wifi_update);
+		}
+		if (suggested_location != "") {
+			suggested_location_TV.setText("Suggested location:\n" + suggested_location);
 		}
 	}
 
@@ -251,11 +257,23 @@ public class MainActivity extends Activity {
 				postMethod.setEntity(new StringEntity(to_send, "UTF-8"));
 				HttpResponse response = client.execute(postMethod);
 				resp = response.getStatusLine().getReasonPhrase();
+				publishProgress(resp);
 				return true;
 			} catch (Exception e) {
-				resp = e.toString();
+				publishProgress(e.toString());
 				return false;
 			} 
+		}
+		
+		protected void onProgressUpdate(Object... params) {
+			String str = (String)params[0];
+			server_response = str;
+			try {
+				received_location = new Gson().fromJson(str, LocationNameId.class);
+				suggested_location = received_location.location_name;
+			} catch (Exception e) {
+				server_response += "\n" + e.toString();
+			}
 		}
 		
 		protected void onPostExecute(Boolean param) {
@@ -263,7 +281,6 @@ public class MainActivity extends Activity {
 			if (param) {
 				packets_sent += 1;
 			}
-			server_response = resp;
 
 			updateGUI();
 		}
@@ -299,5 +316,9 @@ public class MainActivity extends Activity {
 		}
 	}
 	
+	public class LocationNameId {
+		public Integer location_id;
+		public String location_name;
+	}
 	
 }
