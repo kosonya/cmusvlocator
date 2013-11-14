@@ -65,7 +65,7 @@ public class MainActivity extends Activity {
 	public Button server_uri_apply_B, create_location_apply_B,
 					suggested_location_accept_B;
 	public Spinner select_location_S;
-	public ToggleButton toggle_listening_TB, toggle_sending_TB;
+	public ToggleButton toggle_listening_TB, toggle_sending_TB, toggle_recording_TB;
 	public TextView packets_sent_TV, suggested_location_TV, packets_pending_TV,
 					server_response_TV, wifi_TV, gps_TV, current_location_TV,
 					select_location_accept_B;
@@ -75,7 +75,7 @@ public class MainActivity extends Activity {
 	public Boolean location_list_request = true;
 //	public String server_uri = "http://curie.cmu.sv.local:8080/api/v1/process_wifi_and_gps_reading";
 //	public String server_uri = "http://10.0.23.67:8080/api/v1/process_wifi_gps_reading/";
-	public String server_host_port = "10.0.20.179:8080";
+	public String server_host_port = "maxwell.sv.cmu.local:8080";
 	public String send_reading_path = "/api/v1/process_wifi_gps_reading/";
 	public String send_reading_get_list = "/api/v1/process_wifi_gps_reading/list/";
 	
@@ -87,7 +87,8 @@ public class MainActivity extends Activity {
 	
 	//Flags
 	Boolean scanning_allowed = true;
-	Boolean sending_allowed = false;
+	Boolean sending_allowed = true;
+	Boolean recording_allowed = false;
 	
 	//State
 	Double Lon = null, Lat = null;
@@ -142,6 +143,7 @@ public class MainActivity extends Activity {
 		select_location_S = (Spinner)findViewById(R.id.select_location_S);
 		select_location_S.setOnItemSelectedListener(new onSpinnerItemSelected());
 		toggle_listening_TB = (ToggleButton)findViewById(R.id.toggle_listening_TB);
+		toggle_recording_TB = (ToggleButton)findViewById(R.id.toggle_recording_TB);
 		toggle_sending_TB = (ToggleButton)findViewById(R.id.toggle_sending_TB);
 		packets_sent_TV = (TextView)findViewById(R.id.packets_sent_TV);	
 		suggested_location_TV = (TextView)findViewById(R.id.suggested_location_TV);
@@ -149,6 +151,8 @@ public class MainActivity extends Activity {
 		server_response_TV = (TextView)findViewById(R.id.server_response_TV);
 		toggle_sending_TB.setOnClickListener(new onToggleSendingClicked());
 		toggle_listening_TB.setOnClickListener(new onToggleScanningClicked());
+		toggle_recording_TB.setOnClickListener(new onToggleRecordingClicked());
+
 		server_uri_apply_B.setOnClickListener(new onServerURIApplyClicked());
 		gps_TV = (TextView)findViewById(R.id.gps_TV);
 		wifi_TV = (TextView)findViewById(R.id.wifi_TV);
@@ -254,6 +258,22 @@ public class MainActivity extends Activity {
 		}
     	
     }
+    
+    class onToggleRecordingClicked implements OnClickListener {
+
+		@Override
+		public void onClick(View v) {
+			ToggleButton b = (ToggleButton)v;
+			if (b.isChecked()) {
+				recording_allowed = true;
+			}
+			else {
+				recording_allowed = false;
+			}
+			updateGUI();
+		}
+    	
+    }
 
     class onServerURIApplyClicked implements OnClickListener {
 
@@ -321,7 +341,7 @@ public class MainActivity extends Activity {
 		if( (Lon != null && Lat != null) || wifipoints != null) {
 			long unixTime = System.currentTimeMillis();
 			String json_str = "{\"timestamp\": " +  Long.toString(unixTime);
-			if (location_name != "") {
+			if (location_name != "" && recording_allowed) {
 				json_str += ", \"location\": \"" + location_name + "\"";
 			}
 			if (Lon != null && Lat != null) {
