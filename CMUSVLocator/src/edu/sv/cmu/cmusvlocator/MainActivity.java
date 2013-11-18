@@ -71,7 +71,7 @@ public class MainActivity extends Activity {
 					select_location_accept_B;
 	
 	//Hardcoded settings
-	public Integer maximum_http_treads = 1;
+	public Integer maximum_http_treads = 10;
 	public Boolean location_list_request = true;
 //	public String server_uri = "http://curie.cmu.sv.local:8080/api/v1/process_wifi_and_gps_reading";
 //	public String server_uri = "http://10.0.23.67:8080/api/v1/process_wifi_gps_reading/";
