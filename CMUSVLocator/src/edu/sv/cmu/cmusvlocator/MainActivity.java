@@ -18,6 +18,7 @@
 
 package edu.sv.cmu.cmusvlocator;
 
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -49,7 +50,9 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
@@ -78,6 +81,7 @@ public class MainActivity extends Activity {
 	public String server_host_port = "maxwell.sv.cmu.local:8080";
 	public String send_reading_path = "/api/v1/process_wifi_gps_reading/";
 	public String send_reading_get_list = "/api/v1/process_wifi_gps_reading/list/";
+	public String get_all_locatoins_path = "/api/v1/get_all_locations/";
 	
 	//Semaphore for HTTP sending threads
 	public Semaphore http_semaphore;
@@ -105,6 +109,8 @@ public class MainActivity extends Activity {
 	WifiManager wifimanager;
 	Context context;
 	onWiFiScanAvailable wifi_receiver = null;
+	
+	MainActivity main_activity = this;
 
 	
 	
@@ -120,6 +126,9 @@ public class MainActivity extends Activity {
 		toggle_listening_TB.setChecked(scanning_allowed);
 		toggle_sending_TB.setChecked(sending_allowed);
 		
+		AsyncTask<Object, Object, String> locationgetter = new LocationGetter();
+		//locationgetter.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+		locationgetter.execute();
 		http_semaphore = new Semaphore(maximum_http_treads, true);
 		if (scanning_allowed) {
 			startScanning();
@@ -132,6 +141,7 @@ public class MainActivity extends Activity {
 		getMenuInflater().inflate(R.menu.main, menu);
 		return true;
 	}
+	
 	
 	
 	public void findUIElements() {
@@ -208,7 +218,7 @@ public class MainActivity extends Activity {
 		if (location_name != "") {
 			current_location_TV.setText("Current location: " + location_name);
 		}
-		if (recv_loc_list != null && recv_loc_list.size() != 0) {
+/*		if (recv_loc_list != null && recv_loc_list.size() != 0) {
 			spinner_array = new String[recv_loc_list.size()];
 			int selected_pos = 0;			
 			for(int i = 0; i < recv_loc_list.size(); i++) {
@@ -225,6 +235,7 @@ public class MainActivity extends Activity {
 			        android.R.layout.simple_spinner_item, spinner_array);
 			select_location_S.setAdapter(adapter);
 		}
+		*/
 	}
 
     class onToggleSendingClicked implements OnClickListener {
@@ -476,5 +487,72 @@ public class MainActivity extends Activity {
 		public Integer location_id;
 		public String location_name;
 	}
+	
+	public class LocationGetter extends AsyncTask<Object, Object, String> {
+
+		String resp = "";
+		
+		@Override
+		protected String doInBackground(Object... params) {
+			HttpClient client = new DefaultHttpClient();
+			String server_uri = "http://" + server_host_port;
+			server_uri += get_all_locatoins_path;
+			try {
+				publishProgress("Sending start");
+				HttpGet getMethod = new HttpGet(server_uri);
+				publishProgress("Executing start");
+				HttpResponse response = client.execute(getMethod);
+				publishProgress("Executing done");
+				String resp = response.getStatusLine().getReasonPhrase();
+				//publishProgress(resp);
+				return resp;
+			} catch (ClientProtocolException e) {
+				// TODO Auto-generated catch block
+				//e.printStackTrace();
+				publishProgress(e.toString());
+				return null;
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				//e.printStackTrace();
+				publishProgress(e.toString());
+				return null;
+			} catch (Exception e) {
+				publishProgress(e.toString());
+				return null;
+			}
+		}
+		
+		protected void onProgressUpdate(Object... params) {
+			String str = (String)params[0];
+			server_response_TV.setText(str);
+		}
+		
+		protected void onPostExecute(String param) {
+			if (param != null && param != ""){
+				server_response_TV.setText(param);
+				Type collectionType = new TypeToken<List<LocationNameId>>(){}.getType();
+				List<LocationNameId> all_locations = new Gson().fromJson(param, collectionType);
+				//server_response_TV.setText(Integer.toString(all_locations.size()));
+				if (all_locations != null && all_locations.size() != 0) {
+					spinner_array = new String[all_locations.size()];
+					for(int i = 0; i < all_locations.size(); i++) {
+						String loc = all_locations.get(i).location_name;
+						spinner_array[i] = loc;
+						
+					}
+					ArrayAdapter<String> adapter = new ArrayAdapter<String>(main_activity,
+					        android.R.layout.simple_spinner_item, spinner_array);
+					select_location_S.setAdapter(adapter);
+				}
+	
+				updateGUI();
+			}
+		}
+		
+	}
+	
+	
+	
+	
 	
 }
