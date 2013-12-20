@@ -82,6 +82,7 @@ public class MainActivity extends Activity {
 	public String send_reading_path = "/api/v1/process_wifi_gps_reading/";
 	public String send_reading_get_list = "/api/v1/process_wifi_gps_reading/list/";
 	public String get_all_locatoins_path = "/api/v1/get_all_locations/";
+	public String device_model = "";
 	
 	//Semaphore for HTTP sending threads
 	public Semaphore http_semaphore;
@@ -120,6 +121,8 @@ public class MainActivity extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
+		
+		device_model = android.os.Build.MANUFACTURER + " " + android.os.Build.MODEL;
 		
 		findUIElements();
 		server_uri_ET.setText(server_host_port);
@@ -363,7 +366,10 @@ public class MainActivity extends Activity {
 				for (ScanResult scanres: wifipoints) {
 					json_str += ", \"wifiBSSID" + scanres.BSSID + "\": " + Integer.toString(scanres.level);
 				}
-			}	
+			}
+			if (device_model != null && !device_model.equals("")) {
+				json_str += ", \"device_model\": \"" + device_model +"\"";
+			}
 			json_str += "}";
 			sendHTTPData(json_str);
 		}
