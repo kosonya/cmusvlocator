@@ -395,9 +395,10 @@ public class MainActivity extends Activity {
 		if (http_semaphore.tryAcquire()) {
 			//You gotta be kidding me!
 			//http://stackoverflow.com/questions/9119627/android-sdk-asynctask-doinbackground-not-running-subclass
-			AsyncTask<String, Object, Boolean> httpsender = new HTTPSender();
+			/*AsyncTask<String, Object, Boolean> httpsender = new HTTPSender();
 			String args[] = {to_send};
-			httpsender.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, args);
+			httpsender.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, args);*/
+			new HTTPSender().execute(to_send);
 		}
 	}
 	
