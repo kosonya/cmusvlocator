@@ -38,6 +38,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -78,7 +79,7 @@ public class MainActivity extends Activity {
 	public Boolean location_list_request = true;
 //	public String server_uri = "http://curie.cmu.sv.local:8080/api/v1/process_wifi_and_gps_reading";
 //	public String server_uri = "http://10.0.23.67:8080/api/v1/process_wifi_gps_reading/";
-	public String server_host_port = "maxwell.sv.cmu.local:8080";
+	public String server_host_port = "maxwell.sv.cmu.edu:8080";
 	public String send_reading_path = "/api/v1/process_wifi_gps_reading/";
 	public String send_reading_get_list = "/api/v1/process_wifi_gps_reading/list/";
 	public String get_all_locatoins_path = "/api/v1/get_all_locations/";
@@ -122,6 +123,8 @@ public class MainActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 		
+		Log.d("CMUSVLocator", "started!!!");
+		
 		device_model = android.os.Build.MANUFACTURER + " " + android.os.Build.MODEL;
 		
 		findUIElements();
@@ -131,6 +134,7 @@ public class MainActivity extends Activity {
 		
 		AsyncTask<Object, Object, String> locationgetter = new LocationGetter();
 		//locationgetter.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+		Log.w("CMUSVLocator", "executing location getter");
 		locationgetter.execute();
 		http_semaphore = new Semaphore(maximum_http_treads, true);
 		if (scanning_allowed) {
@@ -511,6 +515,7 @@ public class MainActivity extends Activity {
 				HttpResponse response = client.execute(getMethod);
 				publishProgress("Executing done");
 				String resp = response.getStatusLine().getReasonPhrase();
+				Log.d("LocationGetter - resp", resp);
 				//publishProgress(resp);
 				return resp;
 			} catch (ClientProtocolException e) {
