@@ -243,6 +243,8 @@ public class MainActivity extends Activity {
 			select_location_S.setAdapter(adapter);
 		}
 		*/
+		
+
 	}
 
     class onToggleSendingClicked implements OnClickListener {
@@ -509,11 +511,11 @@ public class MainActivity extends Activity {
 			String server_uri = "http://" + server_host_port;
 			server_uri += get_all_locatoins_path;
 			try {
-				publishProgress("Sending start");
+				//publishProgress("Sending start");
 				HttpGet getMethod = new HttpGet(server_uri);
-				publishProgress("Executing start");
+				//publishProgress("Executing start");
 				HttpResponse response = client.execute(getMethod);
-				publishProgress("Executing done");
+				//publishProgress("Executing done");
 				String resp = response.getStatusLine().getReasonPhrase();
 				Log.d("LocationGetter - resp", resp);
 				//publishProgress(resp);
